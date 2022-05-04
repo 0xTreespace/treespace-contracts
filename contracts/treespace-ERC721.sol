@@ -18,8 +18,11 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     // tokenID => basispointsRoyalties
     mapping(uint => uint) public marketplaceRoyalties;
 
+    // tokenID => creator
+    mapping(uint => address) public creatorOfToken;
+
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://hash";
+        return "ipfs://";
     }
 
     /*
@@ -37,6 +40,9 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
         // set the royalties
         _setMarketplaceRoyalties(_royaltiesBasisPoints, tokenId);
+
+        // remember the creator
+        creatorOfToken[tokenId] = msg.sender;
     }
 
     /* 
@@ -81,12 +87,39 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     /* 
     @dev set the royalties for the NFT
     @param _basispoints max. 10_000
-    @param _tokenID
+    @param _tokenID 
     */
     function _setMarketplaceRoyalties(uint _basispoints, uint _tokenID) internal {
         require(_basispoints <= 3000, "ERC721::Royalities must be below or equal to 30 percent!");
 
         // set the royalties for the NFT
         marketplaceRoyalties[_tokenID] = _basispoints;
+    }
+
+    /* 
+    @dev 
+    * change the royalties of an NFT. 
+    * can only be lowered
+    * no less than zero
+
+    @check the NFT was createde by msg.sender, also makes sure the token exists
+    @check basispoints cannot be zero
+    @check _newBasisPoints must be lower than _currentBasisPoints
+    @param _tokenID the ID for the token
+    @param _newBasisPoints the new royalties
+    */
+    function changeMarketplaceRoyalties(uint _tokenID, uint _newBasisPoints) public {
+        require(msg.sender == creatorOfToken[_tokenID], "ERC721:Only creator can change Royalties.");
+        require(marketplaceRoyalties[_tokenID] != 0, "ERC721:Royalties already at 0!");
+        require(marketplaceRoyalties[_tokenID] > _newBasisPoints, "ERC721:Royalties can only be lowered!");
+
+        marketplaceRoyalties[_tokenID] = _newBasisPoints;
+    }
+
+    /* 
+     @dev returns the creator of an NFT for the marketplace contract
+    */
+    function getCreatorOfToken(uint _tokenID) public view returns (address){
+        return(creatorOfToken[_tokenID]);
     }
 }
