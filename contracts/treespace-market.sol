@@ -33,12 +33,16 @@ contract treespaceMarket {
             -- cancel reservePriceAuction
         x - buy fixedPricedListing // tested
         x - bid on NFT (bid >= reserve price)
-         - settle Auction
+        x - settle Auction
         x - withdraw expired Bid on NFT ----> the bid is automatically sent back
         x - add royalties
             x -- percentage set by user
             x -- embed in the ERC721 contract
                 x --- set on creation
+         - passive bid on _tokenID 
+            -- user can bid on any (not active auction)
+               NFT in the ERC721 contract.
+            -- function acceptPassiveBid() - onlyOwnerOfNFT
     */
 
     // the identifier to match auctions and fixed price listings 
@@ -232,6 +236,7 @@ contract treespaceMarket {
 
             require(msg.sender != _auctionData.poster, "MARKET:Cannot bid on own NFT.");
 
+
             /* 
             to do
             * checks
@@ -272,15 +277,181 @@ contract treespaceMarket {
     @dev callable by anyone 
     @param _auctionID the auction ID
     @check the auction needs to exist
+    @check auction must be open
+    @check the timestamp 
     */
     function settleReservePriceAuction(uint _auctionID) public {
-        require(auctions[auctionID].poster != address(0x0), "MARKET::Listing does not exist");
+        require(auctions[_auctionID].poster != address(0x0), "MARKET::Auction does not exist");
+        require(auctions[_auctionID].status == reservePriceAuctionStatus.OPEN, "MARKET:Auction not open.");
+        require(block.timestamp >= auctions[_auctionID].timePeriod, "MARKET:Auction not over.");
+ 
+        // the auction has been completed
+        /* 
+        To do:
+        * send the NFT to the winner
+        * distribute all ETH to poster, creator, marketplace
+            - if creator fees are zero
+        * set the auction status to EXECUTED
+
+        */
+
+        Auction memory auction = auctions[_auctionID];
+
+
+        uint _feeAmount = auction.highestBid * fee / 10000;
+        uint _royaltiesOfArtist = _getRoyaltiesByTokenID(auction.tokenID);
+
+
+         // prevent revert incase the royaltie is zero
+        if(_royaltiesOfArtist != 0) {
+
+            // we compute the cut of the artist
+            uint royaltieAmount = auction.highestBid * _royaltiesOfArtist / 10000;
+            
+            // and transfer the remaining value to the seller
+            payable(auction.poster).transfer(auction.highestBid - (_feeAmount + royaltieAmount));
+
+            // transfer the royalties to the artist
+            payable(_getCreatorOfToken(auction.tokenID)).transfer(royaltieAmount);
+
+        } else {
+            // the artist royalties are zero so we ignore it
+            // sending the proceeds to the artist
+            payable(auction.poster).transfer(auction.highestBid - _feeAmount);
+        }
+
+        // eth has been sent out - now sending NFT
+        itemToken.transferFrom(address(this), auction.highestBidder, auction.tokenID);
+        auctions[_auctionID].status = reservePriceAuctionStatus.EXECUTED;
+
+   }
+
+    /*
+    Passive Bids 
+    ------------
+
+    array of passive bids for each NFT 
+    mapping(tokenID => passiveBid[]) tokenBids
+        or * mapping(tokenID => mapping(bidID => passiveBid)) 
+
+    struct passiveBid {
+        uint expiry:
+        address poster:
+        uint offer:
+    }
+
+    functions:
+        acceptPassiveBid
+        cancelPassiveBid
+        createPassiveBid
+     */
+
+    struct passiveBid {
+        uint expiry;
+        address poster;
+        uint offer;
+    }
+
+    // tokenId > passiveBids[]
+    mapping(uint => passiveBid[]) public passiveBids;
+
+    /* 
+    @dev bidding on any NFT assuming it is not an active auction
+    @param tokenID specified in the ERC721 contract
+    @param _expiry the unix timestamp when the bid expires
+    @check Offer must be above 0
+    @check expiry must be in the future
+    @check that the token is not being auctioned off
+    */
+
+    function createPassiveBid(uint _tokenID, uint _expiry) public payable {
+        require(msg.value > 0, "MARKET:Bid must be higher than zero.");
+        require(_expiry > block.timestamp, "MARKET:Expiry needs to be in the future.");
+
+            // problem: if there is no entry for the auctions, the auction check 
+            // is directed towards the token with an ID of 0
+
+            // solution: check if the tokenID matches the one defined in the auction
+
+        Auction memory auctionCheck = auctions[AuctionIdByTokenId[_tokenID]];
+
+        // if this does not apply - there is no auction going on anyway
+        if(auctionCheck.tokenID == _tokenID) {
+            // the auction entry is for the specific token
+            // next check if the auction is not open
+            require(auctionCheck.status != reservePriceAuctionStatus.OPEN, "MARKET:Cannot create passive Bid on active listing.");
+        } 
+
+        // adding the bid to the bids array
+        passiveBids[_tokenID].push(
+            passiveBid({
+                expiry: _expiry,
+                poster: msg.sender,
+                offer: msg.value 
+            })
+         );    
+    } 
+
+    /* 
+    @dev accepting a passive bid and receiving the value
+    @param _tokenID
+    @param _bidIndex for knowing the excact bid to accept
+    @check if msg.sender = owner of token
+    @check if the bid exitst - require(passiveBid.poster != address(0x0))
+    
+    */
+    function acceptPassiveBid(uint _tokenID, uint _bidIndex) public {
+
+        passiveBid memory _targetBid = passiveBids[_tokenID][_bidIndex];
+
+        require(_targetBid.poster != address(0x0), "MARKET:Bid does not exist.");
+
+        // !!! check if the NFT is being auctioned off
+        
+        
+        // problem: need to check if msg.sender owns the NFT (both listed and unlisted)
+        // solution: check first if the NFT is listed 
+        //            if not check if the itemToken.ownerOf == msg.sender
+        //             could also require user to delist
+
+        // check if the contract holds the NFT - means it's listed
+        if(itemToken.ownerOf(_tokenID) == address(this)) {
+            // @check ensure the poster is the msg.sender 
+            require(listings[_tokenID].poster == msg.sender, "MARKET:Cannot accept bid on NFT you don't own.");
+            
+            /*
+            To do: 
+             - update listings[tokenID], 
+             - send the NFT from the contract to the bid,poster 
+            */
+
+        } else if (itemToken.ownerOf(_tokenID) == msg.sender) {
+             // NFT is not listed - but the msg.sender is the owner
+            
+        } else {
+            revert("MARKET:You do not own the NFT.");
+        }
+
+        
+        
+
+
+        if(listings[_tokenID].poster != address(0x0)) {
+            // the NFT is listed or was listed at some point
+
+            // problem: the listing.poster could be inacurate and not prove ownership
+            // the smart contract does not track ownership of NFT 
+        } 
+
+        itemToken.ownerOf(_tokenID);
+
+
     }
 
 }
 
 interface treespaceERC721 {
-    // limited interface
+    // limited interface for interacting for calling functions in the contract
     function getRoyaltiesOfToken(uint _tokenId) external returns(uint);
     function getCreatorOfToken(uint _tokenID) external returns(address);
 }

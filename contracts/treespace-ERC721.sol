@@ -25,6 +25,9 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         return "ipfs://";
     }
 
+    // removing the base URI to allow users to add their own links?
+
+
     /*
     @title publicMint
     @dev allows anyone to mint an NFT to the contract
@@ -118,6 +121,7 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     /* 
      @dev returns the creator of an NFT for the marketplace contract
+     @param _tokenID 
     */
     function getCreatorOfToken(uint _tokenID) public view returns (address){
         return(creatorOfToken[_tokenID]);
