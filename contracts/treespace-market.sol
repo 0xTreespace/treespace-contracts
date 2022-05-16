@@ -403,47 +403,41 @@ contract treespaceMarket {
     function acceptPassiveBid(uint _tokenID, uint _bidIndex) public {
 
         passiveBid memory _targetBid = passiveBids[_tokenID][_bidIndex];
-
         require(_targetBid.poster != address(0x0), "MARKET:Bid does not exist.");
 
         // !!! check if the NFT is being auctioned off
-        
-        
+        require(auctions[AuctionIdByTokenId[_tokenID]].status != reservePriceAuctionStatus.OPEN, 
+        "MARKET:Cannot accept bid on active auction.");
+
+        require(auctions[AuctionIdByTokenId[_tokenID]].status != reservePriceAuctionStatus.NOTSTARTED, 
+        "MARKET:Cannot accept bid on NFT listed for Reserve Auction.");
+
         // problem: need to check if msg.sender owns the NFT (both listed and unlisted)
         // solution: check first if the NFT is listed 
-        //            if not check if the itemToken.ownerOf == msg.sender
-        //             could also require user to delist
+        //           if not check if the itemToken.ownerOf == msg.sender
 
         // check if the contract holds the NFT - means it's listed
         if(itemToken.ownerOf(_tokenID) == address(this)) {
             // @check ensure the poster is the msg.sender 
             require(listings[_tokenID].poster == msg.sender, "MARKET:Cannot accept bid on NFT you don't own.");
-            
             /*
             To do: 
-             - update listings[tokenID], 
-             - send the NFT from the contract to the bid,poster 
+             - update listings[tokenID], specifically the status to fixedPriceListingStatus.Executed
+             - send the NFT from the contract to the poster 
             */
+            listings[_tokenID].status = fixedPriceListingStatus.EXECUTED;
+            itemToken.transferFrom(address(this), _targetBid.poster, _tokenID);
+
 
         } else if (itemToken.ownerOf(_tokenID) == msg.sender) {
              // NFT is not listed - but the msg.sender is the owner
+             // user needs to approve the contract
+            itemToken.transferFrom(itemToken.ownerOf(_tokenID), _targetBid.poster, _tokenID);
+
             
         } else {
             revert("MARKET:You do not own the NFT.");
         }
-
-        
-        
-
-
-        if(listings[_tokenID].poster != address(0x0)) {
-            // the NFT is listed or was listed at some point
-
-            // problem: the listing.poster could be inacurate and not prove ownership
-            // the smart contract does not track ownership of NFT 
-        } 
-
-        itemToken.ownerOf(_tokenID);
 
 
     }

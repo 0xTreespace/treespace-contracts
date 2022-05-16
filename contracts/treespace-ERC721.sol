@@ -22,11 +22,8 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     mapping(uint => address) public creatorOfToken;
 
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+        return "ar://";
     }
-
-    // removing the base URI to allow users to add their own links?
-
 
     /*
     @title publicMint
