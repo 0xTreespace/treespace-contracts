@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+pragma experimental ABIEncoderV2;
 
-import "../openzeppelin/token/ERC721/ERC721.sol";
-import "../openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
-import "../openzeppelin/token/ERC721/extensions/ERC721URIStorage.sol";
-import "../openzeppelin/access/Ownable.sol";
-import "../openzeppelin/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /* 
                                                                                                                                                    
@@ -47,17 +48,24 @@ import "../openzeppelin/utils/Counters.sol";
 
 */
 
+
 /// @custom:security-contact support@treespace.xyz
 contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("Treespace", "TREE") {}
+    IERC721 itemToken;
+
+    constructor() ERC721("Treespace", "TREE") {
+        itemToken = IERC721(address(this));
+    }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "ar://";
+        return "ipfs://";
     }
+
+
 
     // The following functions are overrides required by Solidity.
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)
@@ -95,13 +103,19 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // tokenID => creator
     mapping(uint => address) public creatorOfToken;
+    mapping(address => uint[]) public createdTokensByAddress; 
+
+    function getCreatedTokensByAddress(address _target) public view returns(uint[] memory) {
+        return createdTokensByAddress[_target];
+    }
 
     // tokenID => basispointsRoyalties
     mapping(uint => uint) public marketplaceRoyalties;
+    mapping(uint => address) public royaltieReceiver;
 
     // permissioned minting - by default true
     // means only approved addresses can mint
-    bool public permissionedMinting = true;
+    bool public permissionedMinting = false;
 
     // if _permissionedMinting = true, only these addresses 
     // can call the mint function
@@ -109,6 +123,7 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // max royalties - default to 1000 or 10%
     uint _maxRoyalties = 1000;
+
 
     /*
     EVENTS
@@ -130,29 +145,31 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     @param URI the IPFS hash pointing to the metadata
     @param _royaltiesBasisPoints the Royalties to be set
     */
-    function mint(string memory _URI, uint _royaltiesBasisPoints) public {
+    function mint(string memory _URI, uint _royaltiesBasisPoints, address _royaltieReceiver) public {
+        require(_royaltieReceiver != address(0x0), "Royaltie Address invalid.");
         if(permissionedMinting == true) {
             // check if the address has been approved
             require(approvedAddresses[msg.sender] == true, "ERC721::Mint:Not authorized to mint.");
-            _mintToken(_URI, _royaltiesBasisPoints);
+            _mintToken(_URI, _royaltiesBasisPoints, _royaltieReceiver);
         } else {
             // minting is open for all
-            _mintToken(_URI, _royaltiesBasisPoints);
+            _mintToken(_URI, _royaltiesBasisPoints, _royaltieReceiver);
         }
     }   
 
     // mint a token
-    function _mintToken(string memory _URI, uint _royaltiesBasisPoints) internal {
+    function _mintToken(string memory _URI, uint _royaltiesBasisPoints, address _royaltieReceiver) internal {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
         _setTokenURI(tokenId, _URI);
 
         // set the royalties
-        _setMarketplaceRoyalties(_royaltiesBasisPoints, tokenId);
+        _setMarketplaceRoyalties(_royaltiesBasisPoints, tokenId, _royaltieReceiver);
 
         // remember the creator
         creatorOfToken[tokenId] = msg.sender;
+        createdTokensByAddress[msg.sender].push(tokenId);
         
         emit MintReceipt(_URI, _royaltiesBasisPoints, tokenId, msg.sender);
     }
@@ -160,15 +177,18 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
 
     /* 
-    @dev set the royalties for the NFT
+    @dev set the royalties for the NFT and the receiving address
     @param _basispoints max. 10_000
     @param _tokenID 
     */
-    function _setMarketplaceRoyalties(uint _basispoints, uint _tokenID) internal {
+    function _setMarketplaceRoyalties(uint _basispoints, uint _tokenID, address _royaltieReceiver) internal {
         require(_basispoints <= _maxRoyalties, "ERC721::_setMarketplaceRoyalties:Royalities must be below or equal to 30 percent!");
 
         // set the royalties for the NFT
         marketplaceRoyalties[_tokenID] = _basispoints;
+
+        // set receiver
+        royaltieReceiver[_tokenID] = _royaltieReceiver;
     }
 
     /* 
@@ -196,6 +216,21 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
 
+    /* 
+    ARTIST FUNCTION
+    ---------------
+    @dev change the receiving address of the royalties
+    
+    @check the NFT was created by msg.sender, also makes sure the token exists (msg.sender != address(0x0))
+    @check new address cannot be zero
+    */
+    function changeRoyaltieReceivingAddress(uint _tokenID, address payable _newReceivingAddress) public {
+        require(msg.sender == creatorOfToken[_tokenID], "ERC721::changeRoyaltieReceivingAddress:Only creator can change receiving address.");
+        require(_newReceivingAddress != address(0x0), "ERC721::changeRoyaltieReceivingAddress:Address must not be null.");
+        
+    }
+
+
     /*
     VIEW FUNCTIONS 
     ----------------------
@@ -210,6 +245,7 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     function getRoyaltiesOfToken(uint _tokenID) public view returns (uint) {
         return(marketplaceRoyalties[_tokenID]);
     }
+    
 
     /*
     ADMISSION COUNCIL FUNCTIONS
@@ -278,9 +314,6 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     function changeUriOfToken(uint _tokenId, string memory _newURI) external onlyOwner {
         _setTokenURI(_tokenId, _newURI);
     }
-
-
-
 
 
 }
