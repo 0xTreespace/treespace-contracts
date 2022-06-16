@@ -31,22 +31,21 @@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@///////////////////@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                                                                                
 
 @title LEAF governance NFT
-@dev ERC721 contract representing the governance NFT. 
+@dev ERC721 contract representing the governance NFT.
 ---------
 */
 
 pragma solidity ^0.8.4;
 
-import "../openzeppelin/token/ERC721/ERC721.sol";
-import "../openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
-import "../openzeppelin/token/ERC721/extensions/ERC721URIStorage.sol";
-import "../openzeppelin/access/Ownable.sol";
-import "../openzeppelin/utils/Counters.sol";
-import "../openzeppelin/utils/cryptography/draft-EIP712.sol";
-import "../openzeppelin/token/ERC721/extensions/draft-ERC721Votes.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/access/Ownable.sol";
+import "@openzeppelin/utils/Counters.sol";
+import "@openzeppelin/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/token/ERC721/extensions/draft-ERC721Votes.sol";
 
 
 contract Leafs is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, EIP712, ERC721Votes {
