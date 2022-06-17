@@ -24,7 +24,7 @@ contract DataManager {
 
     struct TokenListing {
         uint tokenID;
-        address receiver;
+        address payable receiver;
         uint price;
         tokenListingStatus status;
     }
@@ -45,7 +45,7 @@ contract DataManager {
     @dev internal function to create listing struct - only has to be done once
     @check check if the token Struct exists - receiver != address(0x0)
     */
-    function _createListingStruct(uint _tokenID, uint _price, address _receiver) internal {
+    function _createListingStruct(uint _tokenID, uint _price, address payable _receiver) internal {
         require(tokenIdToStruct[_tokenID]["receiver"] == address(0x0), "MarketplaceV1::_createListingStruct:Token Struct already exists.");
 
         // fill the struct

@@ -15,13 +15,12 @@ Does not support bidding
 Does not support reserve Price Auctions
 */
 
-contract MarketplaceV1 is DataManager {
+contract MarketplaceV1 is DataManager, Ownable {
     
     address nftTokenAddress;
     IERC721 itemToken;
     
     constructor (address _itemTokenAddress)
-        public
     {
         itemToken = IERC721(_itemTokenAddress);
         nftTokenAddress = _itemTokenAddress;
@@ -66,9 +65,19 @@ contract MarketplaceV1 is DataManager {
 
         // distribute the msg.value to the royaltieReceiver
         address payable royaltieReceiver = itemToken.getRoyaltieReceiver(_tokenID);
-        address payable royalties = itemToken.getRoyaltiesOfToken(_tokenID);
+        address royalties = itemToken.getRoyaltiesOfToken(_tokenID);
 
-        
+        uint _feeAmount = msg.value * marketFee / 10000;
+
+        if(royalties != 0) {
+            uint _royaltyAmount = msg.value * royalties / 10000;
+            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - (_feeAmount + royaltieAmount)); 
+            royaltieReceiver.transfer(royalties);
+        } else {
+            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _feeAmount); 
+        }
+    
+
     }   
 
 

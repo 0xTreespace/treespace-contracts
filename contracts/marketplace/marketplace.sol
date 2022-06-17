@@ -39,7 +39,7 @@ import "@openzeppelin/access/Ownable.sol";
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 */
 
-contract treespaceMarket {
+contract treespaceMarket is Ownable {
 
     IERC721 itemToken;
     

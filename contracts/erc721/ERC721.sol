@@ -51,7 +51,7 @@ import "./marketplaceConfig.sol";
 
 // @custom:security-contact support@treespace.xyz
 
-contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceConfig {
+contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceConfig, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
