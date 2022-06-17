@@ -191,6 +191,4 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceCon
     function changeUriOfToken(uint _tokenId, string memory _newURI) external onlyOwner {
         _setTokenURI(_tokenId, _newURI);
     }
-
-
 }

@@ -15,7 +15,7 @@ contract AdmissionCouncil {
     These functions can only be called by the addmissions council. 
     For Managing permission. 
     */
-
+    
     address addmissionCouncilDAO;
     bool addmissionsCouncilPaused;
 

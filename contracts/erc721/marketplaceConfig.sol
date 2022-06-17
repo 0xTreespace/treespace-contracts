@@ -99,5 +99,8 @@ contract MarketplaceConfig {
         return(marketplaceRoyalties[_tokenID]);
     }
     
+    function getRoyaltieReceiver(uint _tokenID) public view returns (address) {
+        return(royaltieReceiver[_tokenID]);
+    }
 
 }

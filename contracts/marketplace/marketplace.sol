@@ -5,9 +5,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/access/Ownable.sol";
 
-
-/*
-                                                                                                                                         
+/*                                                                                                                                    
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(/&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -39,8 +37,6 @@ import "@openzeppelin/access/Ownable.sol";
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@///////////////////@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-
 */
 
 contract treespaceMarket {
@@ -111,7 +107,7 @@ contract treespaceMarket {
     // defines the auction
     // has the same ID as the Trade struct
     struct Auction {
-        address poster;
+        address poster; 
         uint tokenID;
         uint reservePrice;
         address highestBidder;
@@ -179,8 +175,8 @@ contract treespaceMarket {
             poster: msg.sender,
             tokenID: _tokenID,
             reservePrice: _reservePrice,
-            highestBidder: msg.sender, /* for the time being set it to msg.sender */
-            highestBid: _reservePrice, /* does not matter just yet */ 
+            highestBidder: msg.sender, /* for the time being set it to msg.sender, null values don't seem to be accepted */
+            highestBid: _reservePrice, /* does not matter just yet */  
             timePeriod: _timeframe,
             status: reservePriceAuctionStatus.NOTSTARTED,
             steps: _steps
