@@ -8,23 +8,32 @@ import "./DataManager.sol";
 
 import "../../Interface/tIERC721.sol";
 
+import "../../Interface/ITreespaceProvider.sol";
+
 /* 
 @title MarketplaceV1
 @dev basic marketplace where users can list NFTs for a fixed Price
 Does not support bidding
 Does not support reserve Price Auctions
+
+This acts as a very simple marketplace to boostrap the project. 
+In further iterations, new features will be added. 
 */
 
 contract MarketplaceV1 is DataManager, Ownable {
     
     address nftTokenAddress;
     IERC721 itemToken;
+    ITreespaceProvider TreespaceProvider;
     
-    constructor (address _itemTokenAddress)
+    constructor (
+        address _itemTokenAddress,
+        address _treespaceProviderAddress
+        )
     {
         itemToken = IERC721(_itemTokenAddress);
         nftTokenAddress = _itemTokenAddress;
-        marketFee = 100;
+        TreespaceProvider = ITreespaceProvider(_treespaceProviderAddress);
     }
 
     event TokenListed(uint, address, uint);
@@ -60,30 +69,28 @@ contract MarketplaceV1 is DataManager, Ownable {
         require(tokenIdToStruct[_tokenID]["price"] == msg.value, "MARKETPLACEV1::buyFixedPriceListing:Value Sent does not match");
         require(tokenIdToStruct[_tokenID]["receiver"] == tokenListingStatus.ACTIVE, "MARKETPLACEV1::buyFixedPriceListing:Token is not listed");
         
-        // transfer the token to the user
         itemToken.transferFrom(address(this), msg.sender, _tokenID);
 
         // distribute the msg.value to the royaltieReceiver
         address payable royaltieReceiver = itemToken.getRoyaltieReceiver(_tokenID);
         address royalties = itemToken.getRoyaltiesOfToken(_tokenID);
+        uint marketplaceFees = TreespaceProvider.getMarketplaceFees();
 
-        if(royalties == 0 && marketFee == 0) {
-            // fees are all set to zero, send the full amount
+        // To do: find a better solution to this
+        if(royalties == 0 && marketplaceFees == 0) {
             tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value);
-        } else if(royalties != 0 && marketFee == 0) {
+        } else if(royalties != 0 && marketplaceFees == 0) {
             uint _royaltyAmount = msg.value * royalties / 10000;
             tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _royaltyAmount);
-        } else if (royalties == 0 && marketFee != 0){
-            uint _feeAmount = msg.value * marketFee / 10000;
+        } else if (royalties == 0 && marketplaceFees != 0){
+            uint _feeAmount = msg.value * marketplaceFees / 10000;
             tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _feeAmount); 
         } else {
-            uint _feeAmount = msg.value * marketFee / 10000;
+            uint _feeAmount = msg.value * marketplaceFees / 10000;
             uint _royaltyAmount = msg.value * royalties / 10000;
             tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - (_feeAmount + royaltieAmount)); 
             royaltieReceiver.transfer(royalties);
         }
-    
-
     }   
 
 

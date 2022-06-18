@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 // aggregates contract addesses and data used by multiple contracts
@@ -43,6 +44,10 @@ contract TreespaceProvider is Ownable {
 
     function getTreespaceProfileContract() public view returns (address) {
         return treespaceProfile;
+    }
+
+    function getMarketplaceFees() public view returns (uint) {
+        return marketplaceFees;
     }
 
     /*
