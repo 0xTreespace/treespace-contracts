@@ -67,14 +67,20 @@ contract MarketplaceV1 is DataManager, Ownable {
         address payable royaltieReceiver = itemToken.getRoyaltieReceiver(_tokenID);
         address royalties = itemToken.getRoyaltiesOfToken(_tokenID);
 
-        uint _feeAmount = msg.value * marketFee / 10000;
-
-        if(royalties != 0) {
+        if(royalties == 0 && marketFee == 0) {
+            // fees are all set to zero, send the full amount
+            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value);
+        } else if(royalties != 0 && marketFee == 0) {
+            uint _royaltyAmount = msg.value * royalties / 10000;
+            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _royaltyAmount);
+        } else if (royalties == 0 && marketFee != 0){
+            uint _feeAmount = msg.value * marketFee / 10000;
+            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _feeAmount); 
+        } else {
+            uint _feeAmount = msg.value * marketFee / 10000;
             uint _royaltyAmount = msg.value * royalties / 10000;
             tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - (_feeAmount + royaltieAmount)); 
             royaltieReceiver.transfer(royalties);
-        } else {
-            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _feeAmount); 
         }
     
 
