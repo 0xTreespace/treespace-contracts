@@ -17,7 +17,7 @@ contract TreespaceProvider is Ownable {
     uint MaxBP;
 
     constructor(
-        address[] _marketplaceContracts,
+        address[] memory _marketplaceContracts,
         address _erc721Contract,
         address _treespaceProfile,
         uint _MaxBP,
@@ -31,7 +31,7 @@ contract TreespaceProvider is Ownable {
     }
 
     function getMarketplaceContractArrayLenght() public view returns (uint) {
-        return marketplaceContracts.lenght;
+        return marketplaceContracts.length;
     }
 
     function getMarketplaceContractByIndex(uint _index) public view returns (address) {
@@ -64,23 +64,19 @@ contract TreespaceProvider is Ownable {
         erc721Contract = _newContract;
     }
 
-    // 0 - remove
-    // 1 - add
-     function manageMarketplaceContracts(uint _operation, address _target) public onlyOwner {
-        require(_operation < 2, "TREESPACEPROVIDER::manageMarketplaceContracts:Operation value out of range");
-        if(_operation == 0) { 
-            // remove
-            delete _marketplaceContracts[_target];
-        } else {
-            _marketplaceContracts.push(_target);
-        }
+    // @param _target the index of the marketplace contract to be operated on
+    // @param _newMarketplace can be set to address(0x0) if target gets removed
+     function removeMarketplaceContract(uint _target) public onlyOwner {
+        delete marketplaceContracts[_target];
+     }
+
+     function addMarketplaceContract(address _newContract) public onlyOwner {
+        marketplaceContracts[getMarketplaceContractArrayLenght()] = _newContract;
      }
 
      function setMarketplaceFees(uint _target) public onlyOwner {
-        // fees cannot be zero right now
         // basispoints - 100 = 1%
 
-        require(_target > 0, "TREESPACEPROVIDER::setMarketplaceFees:Fee cannot be set to zero");
         require(_target < MaxBP, "TREESPACEPROVIDER::setMarketplaceFees:Fee must be below MAXBP value.");
 
         marketplaceFees = _target;

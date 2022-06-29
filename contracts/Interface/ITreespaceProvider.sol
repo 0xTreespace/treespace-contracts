@@ -13,6 +13,8 @@ interface ITreespaceProvider {
     function changeTreespaceProfile(address _newContract) external;
     function changeERC721Contract(address _newContract) external;
 
-    function manageMarketplaceContracts(uint _operation, address _target) external;
+    function removeMarketplaceContract(uint _target) external;
+    function addMarketplaceContract(address _newContract) external;
+
     function setMarketplaceFees(uint _target) external;
 }

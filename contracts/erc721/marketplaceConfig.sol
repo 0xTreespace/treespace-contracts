@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^8.0.4;
+pragma solidity ^0.8.4;
 
 // @title Marketplace Config
 // this contract stores the logic used by 
 // markeptlace contracts to get data about 
 // the Royalties and the creator of a token
+
+// marketplace contracts will use this logic
 
 contract MarketplaceConfig {
     

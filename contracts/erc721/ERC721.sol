@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./marketplaceConfig.sol";
+import "./admissionCouncil.sol";
 
 /* 
                                                                                                                                                    
@@ -51,7 +52,7 @@ import "./marketplaceConfig.sol";
 
 // @custom:security-contact support@treespace.xyz
 
-contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceConfig, Ownable {
+contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceConfig, Ownable, AdmissionCouncil {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
@@ -99,9 +100,9 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceCon
     // ------------------------------------------------------------
     // --------------------- Custom Functions ---------------------
     // ------------------------------------------------------------
+    // Not part of the ERC721 standard
 
-    // permissioned minting - by default true
-    // means only approved addresses can mint
+    // only approved addresses can mint
     bool public permissionedMinting = false;
 
     /*
@@ -132,7 +133,7 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceCon
             // minting is open for all
             _mintToken(_URI, _royaltiesBasisPoints, _royaltieReceiver);
         }
-    }   
+    }
 
     // mint a token
     function _mintToken(string memory _URI, uint _royaltiesBasisPoints, address _royaltieReceiver) internal {
@@ -147,12 +148,12 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceCon
         // remember the creator
         creatorOfToken[tokenId] = msg.sender;
         createdTokensByAddress[msg.sender].push(tokenId);
-        
+
         emit MintReceipt(_URI, _royaltiesBasisPoints, tokenId, msg.sender);
     }
 
 
-    /* 
+    /*
     GOVERNANCE FUNCTIONS:
     ------------------------
     These functions can be called by the governance contract to change paramters.
@@ -181,7 +182,7 @@ contract Treespace is ERC721, ERC721Enumerable, ERC721URIStorage, MarketplaceCon
     // these are used to give the DAO the ability to regulate the minted tokens
     // only to be used as a last resort and in an emergency.
     // not effective or effecient because of the proposal process
-    
+
     // burns a token
     function burnToken(uint _tokenId) external onlyOwner {
         _burn(_tokenId);

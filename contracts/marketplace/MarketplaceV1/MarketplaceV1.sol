@@ -3,51 +3,51 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./DataManager.sol";
 
 import "../../Interface/tIERC721.sol";
 
 import "../../Interface/ITreespaceProvider.sol";
 
-/* 
+/*
 @title MarketplaceV1
 @dev basic marketplace where users can list NFTs for a fixed Price
 Does not support bidding
 Does not support reserve Price Auctions
 
-This acts as a very simple marketplace to boostrap the project. 
-In further iterations, new features will be added. 
+This acts as a very simple marketplace to boostrap the project.
+In further iterations, new features will be added.
 */
 
 contract MarketplaceV1 is DataManager, Ownable {
-    
+
     address nftTokenAddress;
-    IERC721 itemToken;
+    tIERC721 itemToken;
     ITreespaceProvider TreespaceProvider;
-    
+
     constructor (
         address _itemTokenAddress,
         address _treespaceProviderAddress
         )
     {
-        itemToken = IERC721(_itemTokenAddress);
+        itemToken = tIERC721(_itemTokenAddress);
         nftTokenAddress = _itemTokenAddress;
         TreespaceProvider = ITreespaceProvider(_treespaceProviderAddress);
     }
 
     event TokenListed(uint, address, uint);
 
-    /* 
+    /*
     Listing Function
     --------------
     @dev Allows a user to put up an NFT as a listing
-    @param _tokenID 
-    @param _price 
+    @param _tokenID
+    @param _price
     @check if the price is above zero
     */
 
-    function createListing(uint _tokenID, uint _price) {
+    function createListing(uint _tokenID, uint _price) public {
         require(_price > 0, "MARKETPLACEV1::createListing:Price must be above zero");
 
         itemToken.transferFrom(msg.sender, address(this), _tokenID);
@@ -58,40 +58,40 @@ contract MarketplaceV1 is DataManager, Ownable {
         emit TokenListed(_tokenID, msg.sender, _price);
     }
 
-    /* 
+    /*
     Buying Function
     ---------------
     @dev call this function to buy a listed NFT
     @param _tokenID the token to buy
     */
 
-    function buyFixedPriceListing(uint _tokenID) {
-        require(tokenIdToStruct[_tokenID]["price"] == msg.value, "MARKETPLACEV1::buyFixedPriceListing:Value Sent does not match");
-        require(tokenIdToStruct[_tokenID]["receiver"] == tokenListingStatus.ACTIVE, "MARKETPLACEV1::buyFixedPriceListing:Token is not listed");
-        
+    function buyFixedPriceListing(uint _tokenID) public payable {
+        require(tokenIdToStruct[_tokenID].price == msg.value, "MARKETPLACEV1::buyFixedPriceListing:Value Sent does not match");
+        require(tokenIdToStruct[_tokenID].status == tokenListingStatus.ACTIVE, "MARKETPLACEV1::buyFixedPriceListing:Token is not listed");
+
         itemToken.transferFrom(address(this), msg.sender, _tokenID);
 
         // distribute the msg.value to the royaltieReceiver
-        address payable royaltieReceiver = itemToken.getRoyaltieReceiver(_tokenID);
-        address royalties = itemToken.getRoyaltiesOfToken(_tokenID);
+        address payable royaltieReceiver = payable(itemToken.getRoyaltieReceiver(_tokenID));
+        uint royalties = itemToken.getRoyaltiesOfToken(_tokenID);
         uint marketplaceFees = TreespaceProvider.getMarketplaceFees();
 
         // To do: find a better solution to this
         if(royalties == 0 && marketplaceFees == 0) {
-            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value);
+            payable(tokenIdToStruct[_tokenID].receiver).transfer(msg.value);
         } else if(royalties != 0 && marketplaceFees == 0) {
             uint _royaltyAmount = msg.value * royalties / 10000;
-            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _royaltyAmount);
+            payable(tokenIdToStruct[_tokenID].receiver).transfer(msg.value - _royaltyAmount);
         } else if (royalties == 0 && marketplaceFees != 0){
             uint _feeAmount = msg.value * marketplaceFees / 10000;
-            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - _feeAmount); 
+            payable(tokenIdToStruct[_tokenID].receiver).transfer(msg.value - _feeAmount);
         } else {
             uint _feeAmount = msg.value * marketplaceFees / 10000;
             uint _royaltyAmount = msg.value * royalties / 10000;
-            tokenIdToStruct[_tokenID]["receiver"].transfer(msg.value - (_feeAmount + royaltieAmount)); 
+            payable(tokenIdToStruct[_tokenID].receiver).transfer(msg.value - (_feeAmount + _royaltyAmount));
             royaltieReceiver.transfer(royalties);
         }
-    }   
+    }
 
 
 }
